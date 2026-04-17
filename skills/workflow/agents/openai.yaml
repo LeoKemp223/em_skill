@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow 流水线"
+  short_description: "串联多个 skill 完成编译+烧录+监控/调试等流水线任务。"
+  default_prompt: "使用 workflow skill，选择构建系统和流水线类型，一键完成编译、烧录和监控/调试流程。"
