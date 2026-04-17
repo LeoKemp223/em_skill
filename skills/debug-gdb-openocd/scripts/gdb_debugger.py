@@ -272,8 +272,9 @@ def generate_gdb_script(
     elf_path: str,
     gdb_port: int,
 ) -> str:
+    elf_posix = elf_path.replace("\\", "/")
     lines: list[str] = [
-        f"file {elf_path}",
+        f"file {elf_posix}",
         f"target extended-remote localhost:{gdb_port}",
     ]
 
