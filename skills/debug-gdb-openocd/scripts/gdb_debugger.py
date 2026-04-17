@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """通用嵌入式 GDB + OpenOCD 调试工具。
 
 这个脚本为 `debug-gdb-openocd` skill 提供可重复调用的执行入口，支持：
@@ -23,8 +23,23 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(_REPO_ROOT / "shared"))
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_SKILLS_DIR = _SCRIPT_DIR.parent.parent
+for _candidate in [_SKILLS_DIR / "shared", _SKILLS_DIR.parent / "shared"]:
+    if (_candidate / "tool_config.py").exists():
+        sys.path.insert(0, str(_candidate))
+        break
 from tool_config import get_tool_path, set_tool_path
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """外设驱动 BSP 适配工具。
 
 为 `peripheral-driver` skill 提供可执行入口，支持：
@@ -17,6 +17,17 @@ import re
 import sys
 import textwrap
 from pathlib import Path
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
 
