@@ -96,6 +96,8 @@ class BuildResult:
     primary_artifact: Artifact | None = None
     errors: int = 0
     warnings: int = 0
+    program_size: dict[str, int] | None = None
+    build_time: str | None = None
     failure_category: str | None = None
     evidence: list[str] = field(default_factory=list)
 
@@ -292,14 +294,16 @@ def resolve_output_dir(project_path: Path, target: KeilTarget) -> Path:
 # 编译执行
 # ---------------------------------------------------------------------------
 
-def parse_build_log(log_path: Path) -> tuple[int, int, list[str]]:
-    """解析编译日志，返回 (errors, warnings, evidence_lines)"""
+def parse_build_log(log_path: Path) -> tuple[int, int, list[str], dict[str, int] | None, str | None]:
+    """解析编译日志，返回 (errors, warnings, evidence_lines, program_size, build_time)"""
     errors = 0
     warnings = 0
     evidence: list[str] = []
+    program_size: dict[str, int] | None = None
+    build_time: str | None = None
 
     if not log_path.exists():
-        return 0, 0, []
+        return 0, 0, [], None, None
 
     try:
         # Keil 日志可能是 GBK/UTF-8 混合编码
@@ -310,9 +314,9 @@ def parse_build_log(log_path: Path) -> tuple[int, int, list[str]]:
             except UnicodeDecodeError:
                 continue
         else:
-            return 0, 0, ["(日志编码无法识别)"]
+            return 0, 0, ["(日志编码无法识别)"], None, None
     except OSError:
-        return 0, 0, []
+        return 0, 0, [], None, None
 
     for line in content.split("\n"):
         stripped = line.strip()
@@ -339,7 +343,25 @@ def parse_build_log(log_path: Path) -> tuple[int, int, list[str]]:
         if "compiling" in stripped.lower() and errors == 0 and len(evidence) < 5:
             evidence.append(stripped)
 
-    return errors, warnings, evidence
+        # Program Size: Code=2852 RO-data=372 RW-data=16 ZI-data=1632
+        size_match = re.search(
+            r"Program Size:\s*Code=(\d+)\s+RO-data=(\d+)\s+RW-data=(\d+)\s+ZI-data=(\d+)",
+            stripped,
+        )
+        if size_match:
+            program_size = {
+                "Code": int(size_match.group(1)),
+                "RO-data": int(size_match.group(2)),
+                "RW-data": int(size_match.group(3)),
+                "ZI-data": int(size_match.group(4)),
+            }
+
+        # Build Time Elapsed:  00:00:05
+        time_match = re.search(r"Build Time Elapsed:\s*(\S+)", stripped)
+        if time_match:
+            build_time = time_match.group(1)
+
+    return errors, warnings, evidence, program_size, build_time
 
 
 @dataclass
@@ -349,6 +371,8 @@ class KeilBuildOutput:
     errors: int
     warnings: int
     evidence: list[str]
+    program_size: dict[str, int] | None = None
+    build_time: str | None = None
 
 
 def run_keil_build(
@@ -370,16 +394,16 @@ def run_keil_build(
     except FileNotFoundError:
         return KeilBuildOutput(False, cmd_str, 0, 0, [f"❌ 未找到 UV4: {uv4_path}"])
 
-    errors, warnings, log_evidence = parse_build_log(log_path)
+    errors, warnings, log_evidence, prog_size, b_time = parse_build_log(log_path)
 
     if result.returncode <= 1 and errors == 0:
         action = "重新编译" if rebuild else "编译"
         warn_note = f"（{warnings} 个警告）" if warnings > 0 else ""
         print(f"✅ {action}成功{warn_note}")
-        return KeilBuildOutput(True, cmd_str, errors, warnings, log_evidence)
+        return KeilBuildOutput(True, cmd_str, errors, warnings, log_evidence, prog_size, b_time)
 
     log_evidence.insert(0, f"UV4 返回码: {result.returncode}")
-    return KeilBuildOutput(False, cmd_str, errors, warnings, log_evidence)
+    return KeilBuildOutput(False, cmd_str, errors, warnings, log_evidence, prog_size, b_time)
 
 
 # ---------------------------------------------------------------------------
@@ -422,6 +446,17 @@ def print_build_report(result: BuildResult) -> None:
         print(f"  工具链:     {result.toolchain}")
     if result.errors or result.warnings:
         print(f"  错误: {result.errors}  警告: {result.warnings}")
+    if result.build_time:
+        print(f"  编译耗时:   {result.build_time}")
+
+    if result.program_size:
+        ps = result.program_size
+        flash = ps.get("Code", 0) + ps.get("RO-data", 0) + ps.get("RW-data", 0)
+        ram = ps.get("RW-data", 0) + ps.get("ZI-data", 0)
+        print(f"\n📐 固件大小:")
+        print(f"  Code={ps.get('Code', 0)}  RO-data={ps.get('RO-data', 0)}  "
+              f"RW-data={ps.get('RW-data', 0)}  ZI-data={ps.get('ZI-data', 0)}")
+        print(f"  Flash ≈ {flash / 1024:.1f} KB (Code + RO + RW)    RAM ≈ {ram / 1024:.1f} KB (RW + ZI)")
 
     if result.artifacts:
         print(f"\n📦 找到 {len(result.artifacts)} 个固件产物：")
@@ -608,6 +643,8 @@ def main() -> int:
             warnings=build_out.warnings,
             failure_category="project-config-error",
             evidence=build_out.evidence,
+            program_size=build_out.program_size,
+            build_time=build_out.build_time,
         )
         print_build_report(result)
         return 1
@@ -626,6 +663,8 @@ def main() -> int:
             artifacts=[],
             failure_category="artifact-missing",
             evidence=build_out.evidence,
+            program_size=build_out.program_size,
+            build_time=build_out.build_time,
         )
         print_build_report(result)
         return 1
@@ -643,6 +682,8 @@ def main() -> int:
         artifacts=artifacts,
         primary_artifact=primary,
         evidence=build_out.evidence,
+        program_size=build_out.program_size,
+        build_time=build_out.build_time,
     )
     print_build_report(result)
     return 0
