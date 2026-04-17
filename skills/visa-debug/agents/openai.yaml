@@ -1,0 +1,4 @@
+interface:
+  display_name: "VISA 仪器调试"
+  short_description: "通过 PyVISA 调试 GPIB/USB/TCP/Serial VISA 仪器通信。"
+  default_prompt: "使用 visa-debug skill，探测 VISA 资源，执行仪器识别、SCPI 命令收发、波形捕获或截图，并输出调试结果。"
