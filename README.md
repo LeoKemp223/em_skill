@@ -140,3 +140,9 @@ python3 scripts/validate_repo.py
 ## 后续扩展
 
 仓库结构已为后续扩展预留空间，例如 `flash-jlink`、`flash-pyocd`、`vendor-tools`、`fault-triage`、`rtos-debug`、`trace-analysis`，无需改动核心约定。
+
+
+感谢 LinuxDo 社区的支持！
+[![LinuxDo](https://img.shields.io/badge/LinuxDo-社区支持-blue)](https://linux.do/)
+
+
