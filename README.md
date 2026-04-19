@@ -1,4 +1,4 @@
-<img width="2433" height="1104" alt="image" src="https://github.com/user-attachments/assets/0e46fb18-28d9-4ee0-a4b5-4e2d928f3826" /># 打通AI开发硬件产品的研发、调试、测试全自动化流程。
+# 打通AI开发硬件产品的研发、调试、测试全自动化流程。
 
 面向 AI 编程助手的嵌入式开发技能集，为大模型提供 MCU 固件开发全流程能力。涵盖多工具链构建（Keil / IAR / CMake / PlatformIO）、烧录、GDB 调试、串口监视、Modbus / CAN / VISA 协议调试、外设驱动适配及流水线编排，支持 Linux、macOS、Windows 三平台。
 
