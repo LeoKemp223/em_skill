@@ -97,11 +97,6 @@ python3 scripts/em_config.py path
    检测到 ST-Link V2，烧录中...
    ✅ 烧录成功，已校验并复位。
 
-👤 编译不过，看看
-🤖 ❌ 构建失败: src/main.c:42: undefined reference to `HAL_UART_Transmit`
-   原因: CMakeLists.txt 缺少 stm32f4xx_hal_uart.c，已修复并重新构建。
-   ✅ 构建成功，产物: build/debug/firmware.elf (128.5 KB)
-
 👤 看串口
 🤖 检测到 COM3 (115200)，抓取日志：
    [00:00.000] System Start
