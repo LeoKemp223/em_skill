@@ -16,8 +16,10 @@
 # 探测环境和串口
 python3 skills/flash-idf/scripts/idf_flasher.py --detect
 
-# 烧录固件（自动探测串口）
-python3 skills/flash-idf/scripts/idf_flasher.py --flash --project /path/to/project
+# 烧录固件（必须指定串口）
+python3 skills/flash-idf/scripts/idf_flasher.py \
+  --flash --project /path/to/project \
+  --port /dev/ttyUSB0
 
 # 指定串口和波特率烧录
 python3 skills/flash-idf/scripts/idf_flasher.py \
@@ -114,7 +116,8 @@ sudo usermod -aG dialout $USER
 在 `flash-idf` skill 中，推荐工作流是：
 
 1. 先用 `--detect` 确认环境和串口状态
-2. 若 `idf.py` 不可用，推荐 `idf-setup`
-3. 若构建产物缺失，推荐 `build-idf`
-4. 执行烧录并整理结果摘要
-5. 更新 `Project Profile`，交给 `serial-monitor` 或 `debug-gdb-openocd`
+2. 若 `idf.py` 不可用，提示用户手动安装 ESP-IDF
+3. 首次使用时，列出探测到的串口设备供用户选择，确认波特率
+4. 若构建产物缺失，推荐 `build-idf`
+5. 使用用户确认的串口和波特率执行烧录
+6. 整理结果摘要，更新 `Project Profile`，交给 `serial-monitor` 或 `debug-gdb-openocd`

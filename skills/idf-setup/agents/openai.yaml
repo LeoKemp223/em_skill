@@ -1,4 +1,0 @@
-interface:
-  display_name: "ESP-IDF 环境安装"
-  short_description: "安装和管理 ESP-IDF 开发环境，支持版本选择和国内外镜像源切换。"
-  default_prompt: "使用 idf-setup skill，探测当前 ESP-IDF 环境状态，根据用户选择的版本和位置执行安装，并输出环境配置建议。"

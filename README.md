@@ -80,7 +80,6 @@ python3 scripts/em_config.py path
 | `peripheral-driver` | 搜索并适配开源 BSP 外设驱动到目标工程 |
 | `stm32-hal-development` | STM32 HAL 库开发指导与最佳实践 |
 | `workflow` | 串联多个 skill 的流水线编排（编译+烧录+监控/调试） |
-| `idf-setup` | 安装和管理 ESP-IDF 开发环境，支持版本选择和国内外镜像源切换 |
 | `build-idf` | 配置目标芯片并构建 ESP-IDF 固件工程 |
 | `flash-idf` | 通过 ESP-IDF 工具链烧录固件并支持 JTAG 调试 |
 
@@ -107,12 +106,6 @@ python3 scripts/em_config.py path
    断点命中: huart->Init.BaudRate = 9600，与预期 115200 不符。
    建议检查 UART 初始化代码中的波特率设置。
 
-👤 装一下 ESP-IDF 5.3
-🤖 检测到国内网络，使用乐鑫镜像源。
-   📥 克隆 ESP-IDF v5.3.2 ...
-   🔧 安装工具链 ...
-   ✅ ESP-IDF v5.3.2 安装成功，路径: ~/esp/esp-idf
-   💡 请执行: . ~/esp/esp-idf/export.sh
 ```
 
 ### Skill 命令
@@ -128,8 +121,7 @@ python3 scripts/em_config.py path
 /flash-openocd
 /debug-gdb-openocd
 
-# ESP-IDF 工程：安装 + 编译 + 烧录
-/idf-setup
+# ESP-IDF 工程：编译 + 烧录
 /build-idf
 /flash-idf
 

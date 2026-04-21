@@ -15,15 +15,24 @@ description: 当需要通过 ESP-IDF 工具链烧录固件到 ESP32 系列芯片
 ## 必要输入
 
 - 工作区路径（含已构建的 `build/` 目录），或包含 `artifact_path` 的 `Project Profile`。
-- 可选的串口设备路径和波特率。默认自动探测串口，波特率 460800。
+- 串口设备路径和波特率。
 - 可选的调试探针配置（用于 JTAG 调试模式）。
+
+## 首次参数确认
+
+首次调用时，必须向用户确认以下参数，不得跳过或自动使用探测值：
+
+- **串口设备**：列出探测到的串口设备供用户选择，即使只有一个也不得自动选择。
+- **波特率**：向用户展示默认值 460800 并确认是否需要修改。
+
+当 `Project Profile` 中已记录过上述参数（即非首次），可直接复用，无需再次询问。
 
 ## 自动探测
 
 - 扫描系统串口设备：Linux `/dev/ttyUSB*`、`/dev/ttyACM*`，macOS `/dev/cu.usbserial*`、`/dev/cu.wchusbserial*`，Windows `COM*`。
 - 读取 `sdkconfig` 中的 Flash 大小和分区表配置。
 - 检查 `build/` 目录中是否存在有效的烧录产物（`*.bin`、`flasher_args.json`）。
-- 若存在多个串口设备，返回 `ambiguous-context` 并列出候选。
+- 探测结果仅作为候选列表展示给用户，不自动选择。
 
 ## 执行步骤
 
@@ -38,7 +47,7 @@ description: 当需要通过 ESP-IDF 工具链烧录固件到 ESP32 系列芯片
 
 ## 失败分流
 
-- 当 `idf.py` 不可用时，返回 `environment-missing`，推荐 `idf-setup`。
+- 当 `idf.py` 不可用时，返回 `environment-missing`，提示用户手动安装 ESP-IDF。
 - 当串口设备不存在或被占用时，返回 `connection-failure`。
 - 当 Linux 用户无串口访问权限时，返回 `permission-problem`，建议添加 `dialout` 组。
 - 当 `build/` 目录不存在或产物缺失时，返回 `artifact-missing`，推荐 `build-idf`。

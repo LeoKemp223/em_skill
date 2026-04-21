@@ -85,8 +85,9 @@ python3 skills/build-idf/scripts/idf_builder.py --build --project /repo/fw
 在 `build-idf` skill 中，推荐工作流是：
 
 1. 先用 `--detect` 确认 ESP-IDF 环境就绪
-2. 若环境未就绪，推荐 `idf-setup` skill
-3. 检查 `sdkconfig` 确认目标芯片，必要时用 `--set-target` 设置
-4. 执行 `--build` 构建
-5. 将构建结果整理成简洁摘要
-6. 更新 `Project Profile`，交给 `flash-idf`
+2. 若环境未就绪，提示用户手动安装 ESP-IDF
+3. 首次使用时，向用户确认目标芯片，即使 `sdkconfig` 中已有值也需确认
+4. 用 `--set-target` 设置目标芯片
+5. 执行 `--build` 构建
+6. 将构建结果整理成简洁摘要
+7. 更新 `Project Profile`，交给 `flash-idf`

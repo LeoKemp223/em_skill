@@ -317,14 +317,13 @@ def main() -> int:
         port = args.port
         if not port:
             ports = detect_serial_ports()
-            if len(ports) == 1:
-                port = ports[0]
-                print(f"ℹ️ 自动选择串口: {port}")
-            elif len(ports) > 1:
-                print(f"⚠️ 检测到多个串口设备，请通过 --port 指定：")
+            if ports:
+                print(f"⚠️ 检测到以下串口设备，请通过 --port 指定：")
                 for p in ports:
                     print(f"  {p}")
-                return 1
+            else:
+                print("⚠️ 未检测到串口设备，请通过 --port 手动指定")
+            return 1
         result = flash_project(project_dir, port, args.baud, verbose=args.verbose)
         print_flash_result(result)
         return 0 if result.status == "success" else 1
