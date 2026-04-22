@@ -70,7 +70,7 @@ python3 skills/build-idf/scripts/idf_builder.py --build --project /repo/fw
 | `--detect` | 探测 ESP-IDF 构建环境 |
 | `--build` | 执行构建 |
 | `--project` | ESP-IDF 工程目录路径 |
-| `--set-target` | 设置目标芯片（esp32、esp32s2、esp32s3、esp32c3、esp32c6、esp32h2） |
+| `--set-target` | 设置目标芯片（esp32、esp32s2、esp32s3、esp32c2、esp32c3、esp32c5、esp32c6、esp32c61、esp32h2、esp32p4） |
 | `--clean` | 执行 fullclean |
 | `--scan-artifacts` | 仅扫描指定目录中的构建产物 |
 | `-v`, `--verbose` | 详细输出 |

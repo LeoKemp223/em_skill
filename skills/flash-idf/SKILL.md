@@ -47,7 +47,7 @@ description: 当需要通过 ESP-IDF 工具链烧录固件到 ESP32 系列芯片
 
 ## 失败分流
 
-- 当 `idf.py` 不可用时，返回 `environment-missing`，提示用户手动安装 ESP-IDF。
+- 当 `idf.py` 不可用时，返回 `environment-missing`，提示用户安装 ESP-IDF 并激活环境（v5.x 使用 `export.sh`，v6.0+ 使用 EIM 激活脚本）。
 - 当串口设备不存在或被占用时，返回 `connection-failure`。
 - 当 Linux 用户无串口访问权限时，返回 `permission-problem`，建议添加 `dialout` 组。
 - 当 `build/` 目录不存在或产物缺失时，返回 `artifact-missing`，推荐 `build-idf`。

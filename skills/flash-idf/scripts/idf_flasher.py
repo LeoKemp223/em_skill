@@ -41,6 +41,7 @@ for _candidate in [_SKILLS_DIR / "shared", _SKILLS_DIR.parent / "shared"]:
         sys.path.insert(0, str(_candidate))
         break
 from tool_config import get_tool_path, set_tool_path
+from idf_env import get_idf_env
 
 @dataclass
 class FlashResult:
@@ -51,20 +52,6 @@ class FlashResult:
     baud: int | None = None
     failure_category: str | None = None
     evidence: list[str] = field(default_factory=list)
-
-
-def _find_idf_py() -> str | None:
-    configured = get_tool_path("idf-py")
-    if configured and shutil.which(configured):
-        return configured
-    if shutil.which("idf.py"):
-        return "idf.py"
-    idf_path = os.environ.get("IDF_PATH")
-    if idf_path:
-        candidate = Path(idf_path) / "tools" / "idf.py"
-        if candidate.exists():
-            return f"{sys.executable} {candidate}"
-    return None
 
 
 def detect_serial_ports() -> list[str]:
@@ -109,8 +96,8 @@ def _has_build_artifacts(project_dir: Path) -> bool:
 
 def flash_project(project_dir: Path, port: str | None, baud: int = 460800,
                    verbose: bool = False) -> FlashResult:
-    idf = _find_idf_py()
-    if not idf:
+    idf_env = get_idf_env()
+    if not idf_env:
         return FlashResult(status="failure", summary="idf.py 不可用",
                            failure_category="environment-missing")
 
@@ -119,7 +106,7 @@ def flash_project(project_dir: Path, port: str | None, baud: int = 460800,
                            failure_category="artifact-missing",
                            evidence=[f"未找到 {project_dir / 'build' / 'flasher_args.json'}"])
 
-    cmd = idf.split() + ["-b", str(baud)]
+    cmd = idf_env.idf_py_cmd + ["-b", str(baud)]
     if port:
         cmd.extend(["-p", port])
     cmd.append("flash")
@@ -136,7 +123,7 @@ def flash_project(project_dir: Path, port: str | None, baud: int = 460800,
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120,
-                                cwd=str(project_dir))
+                                cwd=str(project_dir), env=idf_env.env)
     except subprocess.TimeoutExpired:
         return FlashResult(status="failure", summary="烧录超时（120 秒）",
                            flash_cmd=cmd_str, port=port, baud=baud,
@@ -162,12 +149,12 @@ def flash_project(project_dir: Path, port: str | None, baud: int = 460800,
 
 
 def erase_flash(port: str | None, baud: int = 460800) -> FlashResult:
-    idf = _find_idf_py()
-    if not idf:
+    idf_env = get_idf_env()
+    if not idf_env:
         return FlashResult(status="failure", summary="idf.py 不可用",
                            failure_category="environment-missing")
 
-    cmd = idf.split() + ["-b", str(baud)]
+    cmd = idf_env.idf_py_cmd + ["-b", str(baud)]
     if port:
         cmd.extend(["-p", port])
     cmd.append("erase-flash")
@@ -175,7 +162,8 @@ def erase_flash(port: str | None, baud: int = 460800) -> FlashResult:
     print(f"🗑️ 擦除命令: {cmd_str}")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60,
+                                env=idf_env.env)
     except subprocess.TimeoutExpired:
         return FlashResult(status="failure", summary="擦除超时",
                            flash_cmd=cmd_str, failure_category="target-response-abnormal")
@@ -280,12 +268,12 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.detect:
-        idf = _find_idf_py()
+        idf_env = get_idf_env()
         ports = detect_serial_ports()
         debug_info = None
         if args.project:
             debug_info = detect_debug_config(Path(args.project).resolve())
-        print_detect_report(ports, idf is not None, debug_info)
+        print_detect_report(ports, idf_env is not None, debug_info)
         return 0
 
     if args.erase_flash:

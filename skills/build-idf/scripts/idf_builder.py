@@ -14,7 +14,6 @@ import argparse
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -40,8 +39,9 @@ for _candidate in [_SKILLS_DIR / "shared", _SKILLS_DIR.parent / "shared"]:
         sys.path.insert(0, str(_candidate))
         break
 from tool_config import get_tool_path, set_tool_path
+from idf_env import get_idf_env
 
-KNOWN_TARGETS = ["esp32", "esp32s2", "esp32s3", "esp32c3", "esp32c6", "esp32h2", "esp32c2", "esp32p4"]
+KNOWN_TARGETS = ["esp32", "esp32s2", "esp32s3", "esp32c2", "esp32c3", "esp32c5", "esp32c6", "esp32c61", "esp32h2", "esp32p4"]
 
 @dataclass
 class Artifact:
@@ -64,35 +64,6 @@ class BuildResult:
     evidence: list[str] = field(default_factory=list)
 
 
-def _find_idf_py() -> str | None:
-    configured = get_tool_path("idf-py")
-    if configured and shutil.which(configured):
-        return configured
-    if shutil.which("idf.py"):
-        return "idf.py"
-    idf_path = os.environ.get("IDF_PATH")
-    if idf_path:
-        candidate = Path(idf_path) / "tools" / "idf.py"
-        if candidate.exists():
-            return f"{sys.executable} {candidate}"
-    return None
-
-
-def _get_idf_version() -> str | None:
-    idf = _find_idf_py()
-    if not idf:
-        return None
-    try:
-        result = subprocess.run(
-            idf.split() + ["--version"], capture_output=True, text=True, timeout=10,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except Exception:
-        pass
-    return os.environ.get("ESP_IDF_VERSION")
-
-
 def _read_sdkconfig_target(project_dir: Path) -> str | None:
     sdkconfig = project_dir / "sdkconfig"
     if not sdkconfig.exists():
@@ -112,12 +83,15 @@ def _is_idf_project(project_dir: Path) -> bool:
 
 
 def detect_environment() -> dict[str, Any]:
-    idf_py = _find_idf_py()
-    idf_version = _get_idf_version()
-    idf_path = os.environ.get("IDF_PATH")
+    idf_env = get_idf_env()
+    idf_path = idf_env.env.get("IDF_PATH") if idf_env else os.environ.get("IDF_PATH")
     return {
-        "idf_py": {"available": idf_py is not None, "command": idf_py},
-        "idf_version": idf_version,
+        "idf_py": {
+            "available": idf_env is not None,
+            "command": " ".join(idf_env.idf_py_cmd) if idf_env else None,
+            "source": idf_env.source if idf_env else None,
+        },
+        "idf_version": idf_env.version if idf_env else None,
         "idf_path": idf_path,
         "idf_path_valid": bool(idf_path and Path(idf_path).is_dir()),
         "known_targets": KNOWN_TARGETS,
@@ -125,17 +99,18 @@ def detect_environment() -> dict[str, Any]:
 
 
 def set_target(project_dir: Path, target: str) -> tuple[bool, list[str]]:
-    idf = _find_idf_py()
-    if not idf:
+    idf_env = get_idf_env()
+    if not idf_env:
         return False, ["❌ idf.py 不可用"]
     if target not in KNOWN_TARGETS:
         return False, [f"❌ 未知目标芯片: {target}，支持: {', '.join(KNOWN_TARGETS)}"]
 
-    cmd = idf.split() + ["set-target", target]
+    cmd = idf_env.idf_py_cmd + ["set-target", target]
     cmd_str = " ".join(cmd)
     print(f"🎯 设置目标: {cmd_str}")
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=str(project_dir))
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120,
+                                cwd=str(project_dir), env=idf_env.env)
     except subprocess.TimeoutExpired:
         return False, ["❌ set-target 超时（120 秒）"]
 
@@ -148,8 +123,8 @@ def set_target(project_dir: Path, target: str) -> tuple[bool, list[str]]:
 
 
 def build_project(project_dir: Path, verbose: bool = False) -> BuildResult:
-    idf = _find_idf_py()
-    if not idf:
+    idf_env = get_idf_env()
+    if not idf_env:
         return BuildResult(status="failure", summary="idf.py 不可用",
                            failure_category="environment-missing")
 
@@ -158,7 +133,7 @@ def build_project(project_dir: Path, verbose: bool = False) -> BuildResult:
                            failure_category="project-config-error",
                            evidence=["需要 CMakeLists.txt 和 main/ 目录"])
 
-    cmd = idf.split() + ["build"]
+    cmd = idf_env.idf_py_cmd + ["build"]
     if verbose:
         cmd.append("-v")
     cmd_str = " ".join(cmd)
@@ -166,7 +141,8 @@ def build_project(project_dir: Path, verbose: bool = False) -> BuildResult:
 
     start = time.time()
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600, cwd=str(project_dir))
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600,
+                                cwd=str(project_dir), env=idf_env.env)
     except subprocess.TimeoutExpired:
         return BuildResult(status="failure", summary="构建超时（600 秒）",
                            build_cmd=cmd_str, failure_category="project-config-error")
@@ -193,7 +169,7 @@ def build_project(project_dir: Path, verbose: bool = False) -> BuildResult:
         status="success",
         summary=f"构建成功，找到 {len(artifacts)} 个产物",
         build_cmd=cmd_str, build_dir=str(build_dir),
-        target_chip=target, idf_version=_get_idf_version(),
+        target_chip=target, idf_version=idf_env.version,
         artifacts=artifacts, primary_artifact=primary, evidence=evidence,
     )
 
@@ -318,13 +294,14 @@ def main() -> int:
         if not args.project:
             print("❌ 请通过 --project 指定工程目录")
             return 1
-        idf = _find_idf_py()
-        if not idf:
+        idf_env = get_idf_env()
+        if not idf_env:
             print("❌ idf.py 不可用")
             return 1
         project_dir = Path(args.project).resolve()
         print("🗑️ 清理构建目录 ...")
-        subprocess.run(idf.split() + ["fullclean"], cwd=str(project_dir), timeout=60)
+        subprocess.run(idf_env.idf_py_cmd + ["fullclean"], cwd=str(project_dir),
+                        timeout=60, env=idf_env.env)
         print("✅ 清理完成")
         return 0
 
