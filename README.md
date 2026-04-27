@@ -12,39 +12,64 @@
 帮我安装 https://github.com/LeoKemp223/embed-ai-tool.git 的 skill
 ```
 
-大模型会自动克隆仓库、复制 skill 到你的工程目录并完成配置。
+大模型会自动克隆仓库、运行安装脚本完成配置。
 
-## 手动安装
+## 脚本安装（推荐）
 
 ### 前置条件
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI 已安装并完成认证
+- Python 3.8+（无需第三方依赖）
 - Git
 
 ### 安装所有 skill
 
 ```bash
 git clone https://github.com/LeoKemp223/embed-ai-tool.git
-cp -r embed-ai-tool/skills/*  your-project/.claude/skills/
-cp -r embed-ai-tool/shared    your-project/.claude/skills/shared
+python3 embed-ai-tool/scripts/install.py /path/to/your-project
 ```
 
 ### 安装指定 skill
 
-只复制你需要的模块：
-
 ```bash
-git clone https://github.com/LeoKemp223/embed-ai-tool.git
-
-# 示例：只安装 build-cmake 和 flash-openocd
-cp -r embed-ai-tool/skills/build-cmake   your-project/.claude/skills/
-cp -r embed-ai-tool/skills/flash-openocd your-project/.claude/skills/
-cp -r embed-ai-tool/shared               your-project/.claude/skills/shared
+python3 embed-ai-tool/scripts/install.py /path/to/your-project --skills build-cmake flash-openocd serial-monitor
 ```
 
-### 工具路径配置
+### 更新已安装的 skill
 
-部分 skill 依赖外部工具（OpenOCD、Keil、arm-none-eabi-gcc 等），可通过内置 CLI 配置路径：
+```bash
+cd embed-ai-tool && git pull
+python3 scripts/install.py /path/to/your-project --force
+```
+
+### 自动探测工具路径
+
+安装时附加 `--detect`，自动扫描 PATH 中的嵌入式工具并写入工作区配置：
+
+```bash
+python3 embed-ai-tool/scripts/install.py /path/to/your-project --detect
+```
+
+### 查看安装状态
+
+```bash
+python3 embed-ai-tool/scripts/install.py /path/to/your-project --status
+```
+
+### 卸载
+
+```bash
+python3 embed-ai-tool/scripts/install.py /path/to/your-project --uninstall
+```
+
+### 列出可用 skill
+
+```bash
+python3 embed-ai-tool/scripts/install.py --list
+```
+
+### 手动工具路径配置
+
+部分 skill 依赖外部工具（OpenOCD、Keil、arm-none-eabi-gcc 等），除 `--detect` 外也可手动配置：
 
 ```bash
 # 设置工具路径（工作区级别）
@@ -158,6 +183,7 @@ python3 scripts/em_config.py path
 ├── templates/                  # Skill 模板
 │   └── skill-template/
 └── scripts/
+    ├── install.py              # 安装 / 卸载 / 状态检查
     ├── validate_repo.py        # 结构校验
     └── em_config.py            # 工具路径配置 CLI
 ```
