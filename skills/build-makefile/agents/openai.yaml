@@ -1,0 +1,4 @@
+interface:
+  display_name: "Makefile 构建"
+  short_description: "解析并编译裸 Makefile 嵌入式工程，定位固件产物。"
+  default_prompt: "使用 build-makefile skill，自动探测 Makefile 工程配置，解析工具链变量，执行编译，定位固件产物，并输出下一步建议。"

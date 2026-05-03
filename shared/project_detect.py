@@ -32,6 +32,12 @@ def detect_build_system(workspace: Path) -> str | None:
                 return "keil"
             if ext in (".eww", ".ewp"):
                 return "iar"
+
+    # Makefile 检测 — 最低优先级，仅在其他系统均未匹配时使用
+    for mf_name in ("Makefile", "makefile", "GNUmakefile"):
+        if (workspace / mf_name).is_file():
+            return "makefile"
+
     return None
 
 
@@ -77,6 +83,22 @@ def detect_target_mcu(workspace: Path, build_system: str | None) -> str | None:
                     return m.group(1)
             except OSError:
                 pass
+
+    if build_system == "makefile":
+        for mf_name in ("Makefile", "makefile", "GNUmakefile"):
+            mf = workspace / mf_name
+            if mf.is_file():
+                try:
+                    text = mf.read_text(encoding="utf-8", errors="ignore")
+                    m = re.search(r"(?:^|\n)MCU\s*[:?]?=\s*(\S+)", text)
+                    if m:
+                        return m.group(1).strip()
+                    m = re.search(r"-mcpu=([a-z0-9]+)", text)
+                    if m:
+                        return m.group(1)
+                except OSError:
+                    pass
+                break
 
     return None
 
